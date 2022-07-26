@@ -1,0 +1,34 @@
+with reg as(
+select 
+  date_trunc('week',signup_date_time_utc) reg_ds,
+  --[signup_date_time_utc:aggregation] reg_ds,
+  --case when signup_whitelabel_id != 1 then 'enterprise' else 'marketplace' end as source,
+  count(distinct du.user_id) registrations_count
+from dwh.dim_user du
+where true
+  and guest_ind = 'N'
+--and signup_date_time_utc < date_trunc([aggregation], current_date)
+  and signup_date_time_utc < date_trunc('week', current_date)
+  and signup_whitelabel_id != 1
+group by 1),
+
+act as(
+select 
+  date_trunc('week',du.activation_date_pt) act_ds,
+  --[activation_date_pt:aggregation] act_ds,
+  --case when order_source in ('unata', 'PBI', 'API') then 'enterprise' else 'marketplace' end as source,
+  count(distinct du.user_id) activations_count
+from dwh.dim_user du
+inner join dwh.fact_order_delivery fod 
+  on fod.order_delivery_id = du.activation_order_delivery_id
+where true
+--and activation_date_pt < date_trunc([aggregation], current_date)
+  and activation_date_pt < date_trunc('week', current_date)
+  and order_source in ('unata', 'PBI', 'API')
+group by 1)
+
+select 
+  reg_ds,
+  activations_count / registrations_count as activation_rate
+  from reg
+  inner join act on reg_ds = act_ds
