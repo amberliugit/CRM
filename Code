@@ -1,0 +1,32 @@
+Select MESSAGE_CAMPAIGN,
+    approx_count_distinct(message_id) as total_sends,
+             approx_count_distinct(user_id)    as total_users,
+             sum(IFF(open_count > 0, 1, 0))    as total_opens,
+             sum(IFF(click_count > 0, 1, 0)) as total_clicks
+      from dwh.fact_consumer_notification
+      where MESSAGE_TOOL = 'braze'
+      AND message_type = 'email'
+//        and message_category = 'activation'
+    and DATE(first_delivered_date_time_utc) >= DATEADD(day, -30, current_date) 
+GROUP BY 1;
+//limit 100
+
+
+select 
+
+date_trunc('day',first_processed_date_time_utc) as day,
+count(distinct fcn.user_id) as tot_emailed_users,
+count(distinct case when first_delivered_date_time_utc is not null then fcn.user_Id end) as tot_delivered_users,
+tot_delivered_users/tot_emailed_users,
+count(distinct case when first_opened_date_time_utc is not null then fcn.user_Id end) as tot_opened_users,
+tot_opened_users/tot_delivered_users,
+count(distinct case when first_clicked_date_time_utc is not null then fcn.user_Id end) as tot_clicked_users,
+tot_clicked_users/tot_opened_users
+from fact_consumer_notification fcn 
+
+where first_processed_date_time_utc >= '2020-05-08'
+and message_tool = 'braze'
+and message_type = 'email'
+//and message_content = 'welcome'
+group by 1
+order by 1
