@@ -1,0 +1,76 @@
+SELECT 
+//WHITELABEL_NAME,
+SIGNUP_WHITELABEL_ID, approx_count_distinct(USER_ID)
+from dwh.fact_user_growth_accounting a 
+//inner join dwh.dim_whitelabel w
+//ON a.SIGNUP_WHITELABEL_ID = w.WHITELABEL_ID
+WHERE activation_date_pt is NULL
+GROUP BY 1
+ORDER BY 2 DESC
+;
+
+select SIGNUP_WHITELABEL_NAME, SIGNUP_WHITELABEL_ID, approx_count_distinct(USER_ID)
+from dwh.dim_user
+WHERE activation_date_time_utc IS NULL
+GROUP BY 1,2
+ORDER BY 3 DESC
+;
+
+select * from dwh.dim_whitelabel;
+
+select distinct last_delivery_order_source FROm dwh.agg_order_growth_accounting
+limit 100
+
+////
+
+SELECT
+  FULL_DATE_PT AS ds
+  ,SUM(MAO_NET_GROWTH) AS net_growth
+  ,SUM(DAO_NEW) AS activations
+  ,SUM(MAO_RESURRECTED) AS resurrected
+  ,SUM(MAO_CHURN) AS churn
+FROM (select *, case when LAST_DELIVERY_ORDER_SOURCE ='mp' then 'marketplace' else 'PBI' end as source from dwh.agg_order_growth_accounting) aoga
+WHERE last_delivery_platform is not null
+  AND DATE(full_date_pt) >= DATEADD(day, -30, current_date) 
+  AND source = 'marketplace'
+GROUP BY 1
+ORDER BY 1
+;
+SELECT
+  FULL_DATE_PT AS ds
+  ,SUM(MAO_NET_GROWTH) AS net_growth
+  ,SUM(DAO_NEW) AS activations
+  ,SUM(MAO_RESURRECTED) AS resurrected
+  ,SUM(MAO_CHURN) AS churn
+FROM (select *, case when LAST_DELIVERY_ORDER_SOURCE ='mp' then 'marketplace' else 'PBI' end as source from dwh.agg_order_growth_accounting) aoga
+WHERE last_delivery_platform is not null
+  AND DATE(full_date_pt) >= DATEADD(day, -30, current_date) 
+  AND source = 'PBI'
+GROUP BY 1
+ORDER BY 1;
+
+select full_date_pt, 
+    COUNT(DISTINCT IFF(dao_ga_status=1,user_id,NULL)) AS mao_new,
+    COUNT(DISTINCT IFF(mao_ga_status=2,user_id,NULL)) AS mao_churn,
+    COUNT(DISTINCT IFF(mao_ga_status=3,user_id,NULL)) AS mao_resurrected,
+    COUNT(DISTINCT IFF(mao_ga_status=4,user_id,NULL)) AS mao_lapsed,
+    COUNT(DISTINCT IFF(mao_ga_status=5,user_id,NULL)) AS mao_existing
+from dwh.fact_user_growth_accounting
+WHERE 
+   DATE(full_date_pt) >= DATEADD(day, -30, current_date)
+  AND LAST_DELIVERY_ORDER_SOURCE = 'mp'
+GROUP BY 1
+ORDER BY 1;
+
+select full_date_pt, 
+    COUNT(DISTINCT IFF(dao_ga_status=1,user_id,NULL)) AS mao_new,
+    COUNT(DISTINCT IFF(mao_ga_status=2,user_id,NULL)) AS mao_churn,
+    COUNT(DISTINCT IFF(mao_ga_status=3,user_id,NULL)) AS mao_resurrected,
+    COUNT(DISTINCT IFF(mao_ga_status=4,user_id,NULL)) AS mao_lapsed,
+    COUNT(DISTINCT IFF(mao_ga_status=5,user_id,NULL)) AS mao_existing
+from dwh.fact_user_growth_accounting
+WHERE 
+   DATE(full_date_pt) >= DATEADD(day, -30, current_date)
+  AND LAST_DELIVERY_ORDER_SOURCE = 'pbi'
+GROUP BY 1
+ORDER BY 1
