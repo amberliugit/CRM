@@ -22,7 +22,7 @@ from dwh.dim_user du
 inner join dwh.fact_order_delivery fod 
   on fod.order_delivery_id = du.activation_order_delivery_id
 where true
---and activation_date_pt < date_trunc([aggregation], current_date)
+  and activation_date_pt < date_trunc([aggregation], current_date)
   and activation_date_pt < date_trunc('week', current_date)
   and order_source in ('unata', 'PBI', 'API')
 group by 1)
